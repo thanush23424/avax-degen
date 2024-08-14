@@ -1,100 +1,87 @@
-# Biryani Token (BIRYANI) Smart Contract
+## EventToken Solidity Smart Contract - README
 
-## Overview
+### Overview
+The `EventToken` smart contract is an ERC20 token implementation using OpenZeppelin libraries, specifically designed for managing event tickets. Users can purchase, transfer, and redeem tokens for event tickets. The contract owner has the ability to mint new tokens as needed.
 
-The Biryani Token (BIRYANI) is an ERC20-compliant token built on the Ethereum blockchain. This token includes additional functionalities like minting, burning, and redeeming tokens for different types of biryani. The contract also supports transferring tokens between accounts.
+### Features
+- **Minting Tokens:** The contract owner can mint new tokens and assign them to any account.
+- **Burning Tokens:** Users can burn their own tokens, which permanently reduces their token balance.
+- **Token Transfer:** Users can transfer tokens to others.
+- **Ticket Redemption:** Users can redeem their tokens for event tickets, which reduces the available ticket count for the selected event.
+- **Viewing Tickets:** Users can view the number of tickets they hold for various events.
 
-## Features
+### Events
+- `LogMessage(string message)`: Emits a message for logging purposes.
+- `TicketPurchased(address indexed account, string eventName, uint256 quantity)`: Emitted when a user successfully purchases tickets.
 
-1. **Minting Tokens**: The owner of the contract can mint new tokens.
-2. **Burning Tokens**: Any token holder can burn their tokens.
-3. **Transferring Tokens**: Token holders can transfer their tokens to other accounts.
-4. **Redeeming Tokens for Biryani**: Token holders can redeem their tokens for different types of biryani (Chicken, Mutton, and Egg).
+### Contract Details
 
-## Smart Contract Details
+#### 1. Constructor
+- Initializes the contract with predefined ticket costs and available counts for events: Concert, Movie, Workshop, and Festival.
 
-### Prerequisites
+#### 2. Minting Tokens (`mintTokens`)
+- **Parameters:**
+  - `account`: The address that will receive the minted tokens.
+  - `amount`: The number of tokens to mint.
+- **Access:** Only the contract owner can mint tokens.
 
-The smart contract is written in Solidity and requires Solidity version ^0.8.0. It also depends on OpenZeppelin's ERC20, Ownable, and ERC20Burnable contracts.
+#### 3. Burning Tokens (`burnTokens`)
+- **Parameters:**
+  - `amount`: The number of tokens to burn from the caller's account.
+- **Restrictions:** Caller must have sufficient tokens to burn.
 
-### Contract Structure
+#### 4. Transferring Tokens (`transferTokens`)
+- **Parameters:**
+  - `recipient`: The address that will receive the transferred tokens.
+  - `amount`: The number of tokens to transfer.
+- **Restrictions:** Caller must have sufficient tokens to transfer.
 
-1. **Imports**: The contract imports the ERC20, Ownable, and ERC20Burnable contracts from the OpenZeppelin library.
-2. **Events**: 
-    - `LogMessage(string message)`: Logs generic messages.
-    - `BiryaniRedeemed(address indexed player, uint256 amount, string productName)`: Logs details when biryani is redeemed.
-3. **Enum**: 
-    - `BiryaniType { Chicken, Mutton, Egg }`: Enum to represent different types of biryani.
-4. **State Variables**: 
-    - `biryaniRates`: A mapping to store the token rates for different types of biryani.
-    - `recentlyRedeemedBiryani`: Stores the type of the most recently redeemed biryani.
+#### 5. Redeeming Tickets (`redeemTickets`)
+- **Parameters:**
+  - `eventName`: The name of the event for which tickets are being redeemed.
+  - `quantity`: The number of tickets to redeem.
+- **Restrictions:** 
+  - The event name must not be empty.
+  - The caller must have enough tokens to cover the total cost.
+  - There must be enough tickets available for the selected event.
 
-### Functions
+#### 6. Viewing Tickets (`myTickets`)
+- **Returns:**
+  - `eventNames`: An array of event names for which the caller has tickets.
+  - `quantities`: An array of quantities corresponding to each event name.
+- **Details:** Allows users to view the number of tickets they hold for each event.
 
-- **Constructor**: Initializes the contract with the owner's address and sets the initial biryani prices.
-- **setPrices()**: Internal function to set the prices for different types of biryani.
-- **mintTokens(address beneficiary, uint256 amount)**: Allows the owner to mint new tokens to a beneficiary's address.
-- **burnTokens(uint256 amount)**: Allows a token holder to burn a specified amount of their tokens.
-- **transferTokens(address recipient, uint256 amount)**: Allows a token holder to transfer tokens to another address.
-- **redeemForBiryani(uint256 tokenAmount)**: Allows a token holder to redeem their tokens for biryani. The type of biryani is determined based on the token amount provided.
-- **showRedeemedItem()**: Returns the name of the most recently redeemed biryani.
-- **getBiryaniTypeName(BiryaniType _type)**: Internal pure function to convert `BiryaniType` enum values to their corresponding string names.
+### Installation
+1. Install the required dependencies:
+   ```bash
+   npm install @openzeppelin/contracts
+   ```
+2. Deploy the contract using a compatible Ethereum development framework like Truffle or Hardhat.
 
-## Usage
+### Usage
+- **Mint Tokens:** The owner can call `mintTokens` to create more tokens.
+- **Transfer Tokens:** Users can transfer tokens using `transferTokens`.
+- **Burn Tokens:** Users can reduce their token balance by burning tokens via `burnTokens`.
+- **Redeem Tickets:** Users can exchange their tokens for event tickets using `redeemTickets`.
+- **View Tickets:** Users can see their tickets by calling `myTickets`.
 
-### Deploying the Contract
+### Example Workflow
+1. **Owner mints tokens:** 
+   ```solidity
+   mintTokens(0xYourAddress, 5000);
+   ```
+2. **User transfers tokens:**
+   ```solidity
+   transferTokens(0xRecipientAddress, 100);
+   ```
+3. **User redeems tickets:**
+   ```solidity
+   redeemTickets("Concert", 2);
+   ```
+4. **User views their tickets:**
+   ```solidity
+   (eventNames, quantities) = myTickets();
+   ```
 
-To deploy the contract, you need to provide the initial owner's address. For example:
-
-```solidity
-address initialOwner = 0xYourEthereumAddress;
-BiryaniToken biryaniToken = new BiryaniToken(initialOwner);
-```
-
-### Minting Tokens
-
-Only the owner can mint tokens:
-
-```solidity
-biryaniToken.mintTokens(0xBeneficiaryAddress, amount);
-```
-
-### Burning Tokens
-
-Any token holder can burn their tokens:
-
-```solidity
-biryaniToken.burnTokens(amount);
-```
-
-### Transferring Tokens
-
-Token holders can transfer their tokens to other accounts:
-
-```solidity
-biryaniToken.transferTokens(0xRecipientAddress, amount);
-```
-
-### Redeeming Tokens for Biryani
-
-Token holders can redeem their tokens for biryani:
-
-```solidity
-biryaniToken.redeemForBiryani(tokenAmount);
-```
-
-### Viewing the Most Recently Redeemed Biryani
-
-To view the name of the most recently redeemed biryani:
-
-```solidity
-string memory lastRedeemedBiryani = biryaniToken.showRedeemedItem();
-```
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for more details.
-
-## Acknowledgements
-
-This contract uses OpenZeppelin's ERC20, Ownable, and ERC20Burnable contracts. Thanks to the OpenZeppelin team for their high-quality library.
+### License
+This project is licensed under the MIT License.
