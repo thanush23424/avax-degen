@@ -3,73 +3,85 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-contract BiryaniToken is ERC20, Ownable, ERC20Burnable {
+contract EventToken is ERC20, Ownable {
     event LogMessage(string message);
-    event BiryaniRedeemed(address indexed player, uint256 amount, string productName);
+    event TicketPurchased(address indexed account, string eventName, uint256 quantity);
 
-    enum BiryaniType { Chicken, Mutton, Egg }
+    mapping(string => uint256) public ticketCosts;
+    mapping(string => uint256) public ticketCounts;
+    mapping(address => mapping(string => uint256)) private userTickets;
 
-    mapping(BiryaniType => uint256) public biryaniRates;
-    BiryaniType public recentlyRedeemedBiryani;
+    constructor() ERC20("EventToken", "ETK") Ownable(msg.sender) {
+        
+        _mint(msg.sender, 0);
 
-    constructor(address initialOwner) Ownable(initialOwner) ERC20("Biryani Token", "BIRYANI") {
-        setPrices();
+        ticketCosts["Concert"] = 1000;
+        ticketCounts["Concert"] = 100;
+
+        ticketCosts["Movie"] = 300;
+        ticketCounts["Movie"] = 200;
+
+        ticketCosts["Workshop"] = 500;
+        ticketCounts["Workshop"] = 50;
+
+        ticketCosts["Festival"] = 1500;
+        ticketCounts["Festival"] = 25;
     }
 
-    function setPrices() internal {
-        biryaniRates[BiryaniType.Chicken] = 500;
-        biryaniRates[BiryaniType.Mutton] = 1500;
-        biryaniRates[BiryaniType.Egg] = 2500;
+    function mintTokens(address account, uint256 amount) public onlyOwner {
+        _mint(account, amount);
     }
 
-    function mintTokens(address beneficiary, uint256 amount) external onlyOwner {
-        _mint(beneficiary, amount);
-    }
-
-    function burnTokens(uint256 amount) external {
-        require(balanceOf(msg.sender) >= amount, "INSUFFICIENT TOKENS!!");
+    function burnTokens(uint256 amount) public {
+        require(balanceOf(msg.sender) >= amount, "Not enough tokens to burn");
         _burn(msg.sender, amount);
         emit LogMessage("Tokens burned successfully");
     }
 
     function transferTokens(address recipient, uint256 amount) external {
-        require(balanceOf(msg.sender) >= amount, "INSUFFICIENT TOKENS!!");
+        require(balanceOf(msg.sender) >= amount, "Not enough tokens to transfer");
         _transfer(msg.sender, recipient, amount);
     }
 
-    function redeemForBiryani(uint256 tokenAmount) external {
-        if (biryaniRates[BiryaniType.Egg] <= tokenAmount) {
-            recentlyRedeemedBiryani = BiryaniType.Egg;
-        } else if (biryaniRates[BiryaniType.Mutton] <= tokenAmount) {
-            recentlyRedeemedBiryani = BiryaniType.Mutton;
-        } else if (biryaniRates[BiryaniType.Chicken] <= tokenAmount) {
-            recentlyRedeemedBiryani = BiryaniType.Chicken;
-        } else {
-            revert("No biryani item can be redeemed with the specified token amount");
+    function redeemTickets(string memory eventName, uint256 quantity) external {
+        require(bytes(eventName).length > 0, "Event name cannot be empty");
+        require(quantity > 0, "Quantity must be greater than zero");
+
+        uint256 totalPrice = ticketCosts[eventName] * quantity;
+        require(balanceOf(msg.sender) >= totalPrice, "Insufficient funds for ticket redemption");
+        require(ticketCounts[eventName] >= quantity, "Not enough tickets available for redemption");
+
+        address user = msg.sender;
+
+        _burn(user, totalPrice);
+        ticketCounts[eventName] -= quantity;
+        userTickets[user][eventName] += quantity;
+
+        emit LogMessage("Tickets redeemed successfully");
+    }
+
+    function myTickets() external view returns (string[] memory eventNames, uint256[] memory quantities) {
+        uint256 eventCount = 0;
+        for (uint256 i = 0; i < 4; i++) {
+            string memory eventName = i == 0 ? "Concert" : (i == 1 ? "Movie" : (i == 2 ? "Workshop" : "Festival"));
+            if (userTickets[msg.sender][eventName] > 0) {
+                eventCount++;
+            }
         }
 
-        require(biryaniRates[recentlyRedeemedBiryani] > 0, "Invalid biryani type");
-        require(balanceOf(msg.sender) >= biryaniRates[recentlyRedeemedBiryani], "INSUFFICIENT TOKENS!!");
-        _burn(msg.sender, biryaniRates[recentlyRedeemedBiryani]);
-        emit BiryaniRedeemed(msg.sender, biryaniRates[recentlyRedeemedBiryani], getBiryaniTypeName(recentlyRedeemedBiryani));
-        emit LogMessage("Biryani item redeemed successfully");
-    }
+        eventNames = new string[](eventCount);
+        quantities = new uint256[](eventCount);
 
-    function showRedeemedItem() external view returns (string memory) {
-        return getBiryaniTypeName(recentlyRedeemedBiryani);
-    }
-
-    function getBiryaniTypeName(BiryaniType _type) internal pure returns (string memory) {
-        if (_type == BiryaniType.Chicken) {
-            return "Chicken Biryani";
-        } else if (_type == BiryaniType.Mutton) {
-            return "Mutton Biryani";
-        } else if (_type == BiryaniType.Egg) {
-            return "Egg Biryani";
-        } else {
-            revert("Invalid biryani type");
+        uint256 index = 0;
+        for (uint256 i = 0; i < 4; i++) {
+            string memory eventName = i == 0 ? "Concert" : (i == 1 ? "Movie" : (i == 2 ? "Workshop" : "Festival"));
+            uint256 quantity = userTickets[msg.sender][eventName];
+            if (quantity > 0) {
+                eventNames[index] = eventName;
+                quantities[index] = quantity;
+                index++;
+            }
         }
     }
 }
